@@ -38,7 +38,7 @@ skin$skin <- as.factor(skin$skin)
 
 ## 1.
 
-First, I set a model with month effect and treatment interaction.
+First, set a model with month effect and treatment interaction.
 
 ```{r}
 gee1 <- geeglm(y ~ treatment * (month + I(month^2)), id = id, data = toenail, family = binomial(link = "logit"), corstr = "exchangeable")
@@ -110,3 +110,37 @@ summary(gee4)
 
 
 The result of ar1 correlation structure is similar to that using exchangeable correlation structure.
+
+
+# Question 2
+
+## 1.
+
+First, set a model with year effect and treatment interaction.
+
+```{r}
+gee5 <- geeglm(y ~ treatment * (year + I(year^2)), id = id, data = skin, family = poisson(link = "log"), corstr = "unstructured")
+summary(gee5)
+```
+
+
+Then test if treatment interaction term is required.
+
+```{r}
+L2 <- matrix(0,ncol=6,nrow=2)
+L2[1,c(5)]  <- c(1)
+L2[2,c(6)]  <- c(1)
+L2
+esticon(gee5,L=L2,joint.test = TRUE)
+```
+
+
+As shown above, the p-value is large than 0.05. We fail to reject the null hypothesis and conclude that we don't need the treatment interaction term. 
+
+Finally, we build up a model without treatment interaction.
+
+```{r}
+gee6 <- geeglm(y ~ treatment + (year + I(year^2)), id = id, data = skin, family = poisson(link = "log"), corstr = "unstructured")
+summary(gee6)
+```
+
