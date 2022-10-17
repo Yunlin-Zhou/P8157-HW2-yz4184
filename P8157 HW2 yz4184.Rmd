@@ -1,0 +1,112 @@
+---
+title: "P8157 HW2 yz4184"
+author: "Yunlin Zhou"
+date: '2022-10-17'
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(data.table)
+library(geepack)
+library(doBy)
+knitr::opts_chunk$set(echo = TRUE,
+                      warning = FALSE,
+                      message = FALSE)
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r, import the data}
+# import dataset for question 1
+toenail <- fread("toenail.txt")
+colnames(toenail) <- c("id", "y", "treatment", "month", "visit")
+toenail$id <- as.factor(toenail$id)
+toenail$treatment <- as.factor(toenail$treatment)
+
+# import dataset for question 2
+skin <- fread("skin.txt")
+colnames(skin) <- c("id","center","age","skin","gender","exposure", "y", "treatment", "year")
+skin$id <- as.factor(skin$id)
+skin$treatment <- as.factor(skin$treatment)
+skin$gender <- as.factor(skin$gender)
+skin$skin <- as.factor(skin$skin)
+```
+
+
+# Question 1
+
+## 1.
+
+First, I set a model with month effect and treatment interaction.
+
+```{r}
+gee1 <- geeglm(y ~ treatment * (month + I(month^2)), id = id, data = toenail, family = binomial(link = "logit"), corstr = "exchangeable")
+summary(gee1)
+```
+
+
+Then test if treatment interaction term is required.
+
+```{r}
+L <- matrix(0,ncol=6,nrow=2)
+L[1,c(5)]  <- c(1)
+L[2,c(6)]  <- c(1)
+L
+esticon(gee1,L=L,joint.test = TRUE)
+```
+
+
+As shown above, the p-value is large than 0.05. We fail to reject the null hypothesis and conclude that we don't need the treatment interaction term. 
+
+Finally, we build up a model without treatment interaction.
+
+```{r}
+gee2 <- geeglm(y ~ treatment + (month + I(month^2)), id = id, data = toenail, family = binomial(link = "logit"), corstr = "exchangeable")
+summary(gee2)
+```
+
+
+Since the P-values of month term and month^2 are smaller than 0.05, we conclude that we need the month term and month^2 terms. The final model is gee2.
+
+
+## 2.
+
+* beta0 = -0.39889
+beta0 is the baseline log odds ratio between having moderate or severe onycholysis in population, holding all other variables constant.
+
+* beta1 = -0.00653
+beta1 is the log odds ratio between treatment A and treatment B of having moderate or severe onycholysis in population for every month in the study, holding all other variables constant.
+
+* beta2 = -0.32603
+beta2 is the log odds ratio between having moderate or severe onycholysis in population for every month in the study, holding all other variables constant.
+
+* beta3 = 0.01151
+beta3 is the log odds ratio between having moderate or severe onycholysis in population for every month^2 in the study, holding all other variables constant.
+
+
+## 3.
+
+As we can see from gee2 model, the coefficient of treatment (beta1) is negative but not significant (p-value = 0.97929).The coefficients of month (beta2 and beta3) are significant.
+
+We can conclude that the treatment 1 might have negative effect on onycholysis but the effect is not significant. However, as time goes by, the severity of onycholysis might be affected.
+
+
+## 4.
+
+```{r}
+gee3 <- geeglm(y ~ treatment + (month + I(month^2)), id = id, data = toenail, family = binomial(link = "logit"), corstr = "unstructured")
+summary(gee3)
+```
+
+
+The result of unstructured correlation structure is different from that using exchangeable correlation structure. In this model we can see that every coefficient is significant, but they are also very small.
+
+
+```{r}
+gee4 <- geeglm(y ~ treatment + (month + I(month^2)), id = id, data = toenail, family = binomial(link = "logit"), corstr = "ar1")
+summary(gee4)
+```
+
+
+The result of ar1 correlation structure is similar to that using exchangeable correlation structure.
