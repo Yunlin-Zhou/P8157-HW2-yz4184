@@ -59,7 +59,6 @@ esticon(gee1,L=L,joint.test = TRUE)
 
 As shown above, the p-value is 0.39. We fail to reject the null hypothesis at 5% level of significance.The treatment interaction term is not significantly associated with outcome. 
 
-
 Finally, we build up a model without treatment interaction.
 
 ```{r}
@@ -67,15 +66,24 @@ gee2 <- geeglm(y ~ treatment + (month + I(month^2)), id = id, data = toenail, fa
 summary(gee2)
 ```
 
+To test if we need month^2 term.
 
-Since the P-values of month term and month^2 are smaller than 0.05, we conclude that we need the month term and month^2 terms. The final model is gee2.
+```{r}
+L2 <- matrix(0,ncol=4,nrow=1)  
+L2[1,c(4)]  <- c(1)
+L2
+esticon(gee2,L=L2,joint.test = FALSE)
+```
+
+
+Since the P-values of  month^2 is smaller than 0.05, we conclude that we need the month^2 terms. The final model is gee2.
 
 
 ## 2.
 
 * beta0 = -0.39889
 
-beta0 is the baseline log odds ratio between having moderate or severe onycholysis in population, holding all other variables constant.
+For those subjects receiving treatment A and having moderate onycholysis, the baseline expected log odds ratio in population is -0.39889.
 
 * beta1 = -0.00653
 
@@ -138,18 +146,14 @@ summary(gee5)
 Then test if treatment interaction term is required.
 
 ```{r}
-L2 <- matrix(0,ncol=6,nrow=2)
-L2[1,c(5)]  <- c(1)
-L2[2,c(6)]  <- c(1)
-L2
-esticon(gee5,L=L2,joint.test = TRUE)
+esticon(gee5,L=L,joint.test = TRUE)
 ```
 
 
 As shown above, the p-value is 0.75. We fail to reject the null hypothesis at 5% level of significance.The treatment interaction term is not significantly associated with outcome. 
 
 
-Finally, we build up a model without treatment interaction.
+We build up a model without treatment interaction.
 
 ```{r}
 gee6 <- geeglm(y ~ treatment + (year + I(year^2)), id = id, data = skin, family = poisson(link = "log"), corstr = "unstructured")
@@ -157,30 +161,43 @@ summary(gee6)
 ```
 
 
+To test if we need the year^2 term.
+
+```{r}
+esticon(gee6,L=L2,joint.test = FALSE)
+```
+
+
+Since the P-values of year^2 is larger than 0.05, we conclude that we do not need the year^2 terms. 
+
+```{r}
+gee7 <- geeglm(y ~ treatment + year, id = id, data = skin, family = poisson(link = "log"), corstr = "unstructured")
+summary(gee7)
+```
+
+
+The final model is gee7.
+
+
 ## 2.
 
-* beta0 = -1.2346
+* beta0 = -1.4020 
 
-beta0 is the baseline log rate ratio for the count of the number of new skin cancers in population, holding all other variables constant.
+On average, the count of the number of new skin cancers per year for the patients receiving placebo is -1.4020 times the number for the patients receiving beta carotene, holding all other variables constant.
 
-* beta1 = 0.1284
+* beta1 = 0.1297
 
 Treatment is not a significant predictor.
 
 On average, the count of the number of new skin cancers per year for the patients receiving beta carotene is 0.1284 times the number for the patients receiving placebo, holding all other variables constant.
 
-* beta2 = -0.1301
+* beta2 = 0.0134
 
 Year is not a significant predictor.
 
-On average, one unit increase in the year is associated with 0.1301 decrease in the number of new skin cancers, holding all other variables constant.
+On average, one unit increase in the year is associated with 0.0134 decrease in the number of new skin cancers, holding all other variables constant.
 
 
-* beta3 = 0.0241
-
-Year^2 is not a significant predictor.
-
-On average, one unit increase in the year^2 is associated with 0.0241 increase in the number of new skin cancers, holding all other variables constant.
 
 
 ## 3.
@@ -193,11 +210,11 @@ We can conclude that beta carotene has positive effect on the rate of skin cance
 ## 4.
 
 ```{r}
-gee7 <- geeglm(y ~ treatment + year + I(year^2) + skin + age + exposure , id = id, data = skin, family = poisson(link = "log"), corstr = "unstructured")
-summary(gee7)
+gee8 <- geeglm(y ~ treatment + year + skin + age + exposure , id = id, data = skin, family = poisson(link = "log"), corstr = "unstructured")
+summary(gee8)
 ```
 
-After adjusting for skin type, age, and the count of the number of previous skin cancers, the coefficient of treatment (beta1) is still positive and not significant (p-value = 0.2377).The coefficients of age and exposure are significant.
+After adjusting for skin type, age, and the count of the number of previous skin cancers, the coefficient of treatment (beta1) is still positive and not significant (p-value = 0.2354).The coefficients of age and exposure are significant.
 
 So we conclude that the effect of beta carotene on the adjusted rate of skin cancers didn't change much.
 
@@ -205,14 +222,14 @@ So we conclude that the effect of beta carotene on the adjusted rate of skin can
 ## 5.
 
 ```{r}
-gee8 <- geeglm(y ~ treatment + year + I(year^2) + skin + age + exposure , id = id, data = skin, family = poisson(link = "log"), corstr = "ar1")
-summary(gee8)
+gee9 <- geeglm(y ~ treatment + year + skin + age + exposure , id = id, data = skin, family = poisson(link = "log"), corstr = "ar1")
+summary(gee9)
 ```
 
 
 ```{r}
-gee9 <- geeglm(y ~ treatment + year + I(year^2) + skin + age + exposure , id = id, data = skin, family = poisson(link = "log"), corstr = "exchangeable")
-summary(gee9)
+gee10 <- geeglm(y ~ treatment + year + skin + age + exposure , id = id, data = skin, family = poisson(link = "log"), corstr = "exchangeable")
+summary(gee10)
 ```
 
 
@@ -223,7 +240,7 @@ The result of ar1 and exchangeable correlation structures are similar to that us
 
 ```{r}
 # estimate over-dispersion parameter
-res = residuals(gee7, type = "pearson")
+res = residuals(gee8, type = "pearson")
 G1=sum(res^2)
 phi=G1/(gee7$df.residual)
 phi
@@ -236,11 +253,11 @@ The model after adjusting for covariates has almost the same coefficient as the 
 
 ```{r}
 # fit model with constant over-dispersion
-summary(gee7,dispersion=phi)
+summary(gee8,dispersion=phi)
 # goodness of fit
-pval=1-pchisq(G1/phi,gee7$df.residual)
+pval=1-pchisq(G1/phi,gee8$df.residual)
 pval
 ```
 
 
-Using adjusted Pearson chi-squared statistic, we get p-value 0.498 > 0.05. Hence we do not have enough evidence to show the model does not fit the data well.
+Using adjusted Pearson chi-squared statistic, we get p-value 0.488 > 0.05. Hence we do not have enough evidence to show the model does not fit the data well.
